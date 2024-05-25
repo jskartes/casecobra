@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { headers } from "next/headers";
 import Stripe from "stripe";
+import "@/types/stripe";
 import { stripe } from "@/lib/stripe";
 import { db } from "@/db";
 
@@ -15,7 +16,7 @@ export async function POST(req: NextRequest) {
     const event = stripe.webhooks.constructEvent(
       body,
       signature,
-      process.env.STRIPE_WEBHOOK_SECRET!
+      process.env.STRIPE_LOCAL_ENV_WEBHOOK_SECRET!
     );
     if (event.type === "checkout.session.completed") {
       if (!event.data.object.customer_details?.email) {
@@ -23,16 +24,15 @@ export async function POST(req: NextRequest) {
       }
 
       const session = event.data.object as Stripe.Checkout.Session;
-      const { userId, orderId } = session.metadata || {
-        userId: null,
-        orderId: null
-      };
+      const { userId, orderId } =
+        session.metadata ||
+        { userId: null, orderId: null };
       if (!userId || !orderId) {
         throw new Error("Invalid request metadata.");
       }
 
       const billingAddress = session.customer_details!.address;
-      const shippingAddress = session.shipping_details!.address;
+      const shippingAddress = session.shipping!.address;
       await db.order.update({
         where: {
           id: orderId
@@ -57,9 +57,9 @@ export async function POST(req: NextRequest) {
               postalCode: billingAddress!.postal_code!,
               country: billingAddress!.country!
       }}}});
-
-      return NextResponse.json({ result: event, ok: true });
     }
+    
+    return NextResponse.json({ result: event, ok: true });
   } catch (error) {
     console.error(error);
     return NextResponse.json(
