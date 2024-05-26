@@ -15,17 +15,20 @@ export const formatPrice = (price: number) => {
 }
 
 export function constructMetadata({
+  metadataBase = new URL("https://casecobra-opal-delta.vercel.app"),
   title = "CaseCobra - Custom high-quality phone cases",
   description = "Create custom high-quality phone cases in seconds",
   image = "/thumbnail.png",
   icons = "/favicon.ico"
 }: {
+  metadataBase?: URL;
   title?: string;
   description?: string;
   image?: string;
   icons?: string;
 } = {}): Metadata {
   return {
+    metadataBase,
     title,
     description,
     openGraph: {
